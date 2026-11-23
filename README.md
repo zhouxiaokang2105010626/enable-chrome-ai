@@ -1,128 +1,60 @@
-# Enable Chrome AI ✨
+# Enable Gemini in Chrome (macOS) ✨
 
-**一键开启 Chrome 内置 AI 功能，零依赖，开箱即用！**
+为 macOS 上的 Chrome Stable 配置 Gemini 侧边栏。
 
-通过修改 Chrome 的配置文件，无需科学上网即可启用 Chrome 内置的 AI 功能，包括：
+## 📋 要求
 
-- 🤖 **Gemini in Chrome** - Chrome 内置 Gemini 助手
-- 🔍 **AI Powered History Search** - AI 驱动的历史记录搜索
-- 🛠️ **DevTools AI Innovations** - 开发者工具 AI 功能
+- macOS、Google Chrome Stable
+- `jq`（如未安装：`brew install jq`）
 
-## ✨ 特点
-
-| 特性 | 描述 |
-|------|------|
-| 🚀 **一键执行** | 运行脚本即可自动完成所有配置 |
-| 📦 **零额外依赖** | 仅需 macOS 系统自带的 `jq` 工具 |
-| 🔄 **自动备份** | 修改前自动创建配置备份，可随时恢复 |
-| 🎯 **多版本支持** | 自动检测并配置 Chrome Stable/Canary/Beta/Dev |
-| 🛡️ **安全关闭** | 优雅关闭 Chrome 进程，避免数据丢失 |
-
-## 📋 系统要求
-
-- **操作系统**: macOS
-- **依赖工具**: `jq` (JSON 处理工具)
-- **浏览器**: Google Chrome (任意版本)
-
-## 🚀 快速开始
-
-### 1. 安装依赖
+## 🚀 启用
 
 ```bash
-brew install jq
+./enable-chrome-ai-modern-macos.sh
 ```
 
-### 2. 克隆仓库
-
-```bash
-git clone https://github.com/YOUR_USERNAME/enable-chrome-ai.git
-cd enable-chrome-ai
-```
-
-### 3. 运行脚本
-
-```bash
-chmod +x enable-chrome-ai.sh
-./enable-chrome-ai.sh
-```
-
-## 📖 使用说明
-
-1. **运行脚本** - 脚本会自动检测已安装的 Chrome 版本
-2. **等待处理** - 脚本会自动关闭 Chrome 并修改配置
-3. **重启浏览器** - 根据提示决定是否自动重启 Chrome
-4. **开始使用** - 重启后即可使用 Chrome AI 功能
-
-### 脚本执行过程
-
-```
-==========================================
-     Enable Chrome AI - Shell 版本
-==========================================
-
-[INFO] 找到 2 个 Chrome 配置文件
-
-[INFO] 正在关闭 Chrome 进程...
-[SUCCESS] Chrome 进程已关闭
-[INFO] 正在处理: /Users/xxx/Library/Application Support/Google/Chrome/Local State
-[INFO] 已创建备份: /Users/xxx/Library/Application Support/Google/Chrome/Local State.backup.20260130100000
-[SUCCESS] 设置 variations_country = "us"
-[SUCCESS] 设置 variations_permanent_consistency_country = ["1", "us"]
-[SUCCESS] 设置所有 is_glic_eligible = true
-[SUCCESS] 完成修改: /Users/xxx/Library/Application Support/Google/Chrome/Local State
-
-==========================================
-[SUCCESS] 所有修改已完成！
-==========================================
-```
+脚本会优雅退出 Chrome，备份并更新当前活动 Profile 的配置，然后带必要参数重启 Chrome。若 Chrome 未能正常退出，脚本会停止，不会强制结束进程。
 
 ## 🔧 技术原理
 
-脚本通过修改 Chrome 的 `Local State` 配置文件中的以下字段来启用 AI 功能：
+脚本通过修正 Chrome 的地区实验配置和当前 Profile 的 GLIC 资格，让 Gemini 侧边栏通过 Chrome 的本地资格检查：
 
-| 字段 | 修改值 | 作用 |
-|------|--------|------|
-| `variations_country` | `"us"` | 设置地区为美国 |
-| `variations_permanent_consistency_country` | `["1", "us"]` | 永久一致性地区设置 |
-| `is_glic_eligible` | `true` | 启用 GLIC (Gemini in Chrome) 资格 |
+| 配置 | 修改值 | 作用 |
+|---|---|---|
+| `variations_country` | `"us"` | 将实验地区设为美国 |
+| `variations_*country` | 当前版本号 + `"us"` | 同步 permanent、safe-seed 地区，避免被 `cn` session 覆盖 |
+| `variations_safe_seed_locale` | `"en-US"` | 配套 safe-seed 语言环境 |
+| `is_glic_eligible` | `true` | 标记当前 Profile 具备 GLIC 资格 |
+| `glic.previously_not_allowed` | `false` | 清除当前 Profile 的“不允许使用”状态 |
+| `sync.glic_rollout_eligibility` | `true` | 启用 Profile 的 GLIC rollout 资格 |
+| `--variations-override-country=us` | 启动参数 | 启动时覆盖地区判断 |
+| `--disable-features=GlicUseSessionCountryForFiltering` | 启动参数 | 禁用按实际 session 地区过滤 |
 
-## ⚠️ 注意事项
+这不是修改 Google 账号地区，也不能绕过账号资格、网络出口或服务端限制。
 
-- 请确保 Chrome 已安装并至少运行过一次（以生成配置文件）
-- 修改前会自动创建 `.backup.时间戳` 备份文件
-- 如需恢复原始配置，可删除当前 `Local State` 并重命名备份文件
-- 此工具与 Google 无关，使用风险自负
+## 🔄 恢复
 
-## 🔄 恢复原始配置
-
-如果需要恢复原始配置：
+恢复最近一次运行前的配置：
 
 ```bash
-# 查找备份文件
-ls ~/Library/Application\ Support/Google/Chrome/Local\ State.backup.*
-
-# 恢复备份（替换为实际的备份文件名）
-cp ~/Library/Application\ Support/Google/Chrome/Local\ State.backup.YYYYMMDDHHMMSS \
-   ~/Library/Application\ Support/Google/Chrome/Local\ State
+./restore-chrome-ai-modern-macos.sh
 ```
+
+备份保存在 `backups/`。恢复脚本会先备份当前配置，再恢复指定快照；恢复配置不保证 Gemini 仍可用。
+
+## ⚠️ 注意
+
+- 仅支持 Chrome Stable 的当前活动 Profile。
+- 本工具会修改 Chrome 本地配置，Chrome 更新可能改变其行为；账号资格或 Google 服务端限制仍可能阻止 Gemini。
+- 不要添加 `--glic-dev`，它曾导致侧边栏部分文字/图标显示异常。
+- `enable-chrome-ai.sh` 是旧脚本，不建议使用。
+- `backups/` 可能包含个人资料设置，请勿公开分享或提交。
 
 ## 📜 Credit
 
-本项目的实现方法基于 [lcandy2/enable-chrome-ai](https://github.com/lcandy2/enable-chrome-ai)。
+本项目的基础思路参考：
 
-原项目使用 Python 实现，需要：
-- 安装 `uv` 或 `pip`
-- Python 3.13+ 运行环境
-- 安装 `psutil` 等依赖包
+- [lcandy2/enable-chrome-ai](https://github.com/lcandy2/enable-chrome-ai)：发现并分享 Chrome AI 本地配置方法。
+- [tianlelyd/enable-chrome-ai](https://github.com/tianlelyd/enable-chrome-ai)：提供 macOS Shell 版本实现。
 
-**本项目的优势**：
-- ✅ 无需安装 Python
-- ✅ 无需包管理器 (uv/pip)
-- ✅ 仅依赖 macOS 常用工具 `jq`
-- ✅ 单文件脚本，开箱即用
-
-感谢 [@lcandy2](https://github.com/lcandy2) 发现并分享了启用 Chrome AI 的方法！
-
-## 📄 License
-
-MIT License
+本版本在此基础上针对 Chrome 157 和 macOS 做了适配：补充 safe-seed 地区、Profile GLIC 资格及启动参数，并通过实际测试移除会导致界面文字/图标异常的 `--glic-dev`。
